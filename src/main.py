@@ -93,15 +93,28 @@ class GradeFillingSystem:
     async def speech_recognition_task(self):
         """语音识别任务"""
         while True:
-            audio_stream = await self.get_audio_stream()  # 获取音频流
+            audio_stream = await self.get_audio_stream()
             text = await self.recognizer.recognize(audio_stream)
-            entries = self.processor.process_text(text)
             
-            for entry in entries:
-                await self.data_queue.put(entry)
+            if text == "STOP_AND_PROCESS":
+                # 处理最终结果
+                result_dict = await self.recognizer.process_final_results()
+                if result_dict:
+                    # 将结果添加到队列中
+                    for student_id, grade in result_dict.items():
+                        entry = self.processor.create_entry(student_id, grade)
+                        if entry:
+                            await self.data_queue.put(entry)
+                break
+            elif text == "STOP":
+                break
+            else:
+                entries = self.processor.process_text(text)
+                for entry in entries:
+                    await self.data_queue.put(entry)
     
     async def table_filling_task(self, webpage_url: str):
-        """表格填任务"""
+        """表格填充任务"""
         self.table_filler.driver.get(webpage_url)
         table_structure = await self.web_analyzer.analyze_table(
             self.table_filler.driver
@@ -113,11 +126,28 @@ class GradeFillingSystem:
                 continue
                 
             # 查找匹配的学号并填充成绩
+            found = False
             for row in table_structure['rows']:
-                if entry.student_id in row['student_id']:
-                    cell_selector = f"tr:nth-child({row['row_element'].get_attribute('rowIndex') + 1}) td:nth-child({table_structure['grade_col'] + 1})"
-                    await self.table_filler.fill_grade(cell_selector, entry.grade)
-                    break
+                # 获取完整学号的后四位进行匹配
+                full_student_id = row['student_id']
+                last_four_digits = full_student_id[-4:]
+                
+                if entry.student_id == last_four_digits:
+                    try:
+                        # 确保所有值都转换为字符串
+                        row_index = str(row['row_element'].get_attribute('rowIndex'))
+                        grade_col = str(table_structure['grade_col'] + 1)
+                        cell_selector = f"tr:nth-child({row_index}) td:nth-child({grade_col})"
+                        await self.table_filler.fill_grade(cell_selector, entry.grade)
+                        print(f"已填写: 完整学号 {full_student_id} (后四位: {last_four_digits}) 的成绩 {entry.grade}")
+                        found = True
+                        break
+                    except Exception as e:
+                        print(f"填写成绩时出错: {e}")
+                        continue
+            
+            if not found:
+                print(f"警告: 未找到匹配的学号 {entry.student_id}")
 
     async def get_audio_stream(self):
         """实时录音实现，增加错误处理和重试机制"""
@@ -184,7 +214,7 @@ class GradeFillingSystem:
 
 async def main():
     system = GradeFillingSystem()
-    await system.start("https://jwgl.ujn.edu.cn/jwglxt/cjlrgl/jscjlr_cxJscjlrIndex.html?doType=details&gnmkdm=N302505&layout=default&su=000011703590")
+    await system.start("http://jwgl.ujn.edu.cn/jwglxt/cjlrgl/jscjlr_cxJscjlrIndex.html?doType=details&gnmkdm=N302505&layout=default&su=000011703590")
 
 if __name__ == "__main__":
     asyncio.run(main()) 

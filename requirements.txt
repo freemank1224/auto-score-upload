@@ -47,3 +47,7 @@ timm
 sounddevice
 requests
 
+# 添加以下依赖
+langchain
+ollama
+
