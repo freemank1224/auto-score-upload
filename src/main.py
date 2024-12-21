@@ -1,9 +1,7 @@
 import asyncio
 from src.speech.speech_recognizer import SenseVoiceRecognizer
 from src.speech.speech_processor import SpeechProcessor
-from src.web.page_analyzer import WebPageAnalyzer
-from src.web.table_filler import TableFiller
-from src.utils.data_queue import DataQueue
+from src.utils.excel_processor import ExcelProcessor
 import sounddevice as sd
 import numpy as np
 
@@ -11,9 +9,7 @@ class GradeFillingSystem:
     def __init__(self):
         self.recognizer = SenseVoiceRecognizer()
         self.processor = SpeechProcessor()
-        self.web_analyzer = WebPageAnalyzer()
-        self.table_filler = TableFiller()
-        self.data_queue = DataQueue()
+        self.excel_processor = ExcelProcessor()
         self.audio_device = self._select_audio_device()  # 选择录音设备
         
     def _select_audio_device(self):
@@ -80,18 +76,13 @@ class GradeFillingSystem:
                 print(f"设备测试出错: {e}")
                 print("请选择其他设备")
     
-    async def start(self, webpage_url: str):
+    async def start(self):
         """启动系统"""
-        await self.table_filler.init()
-        
-        # 启动并行任务
-        await asyncio.gather(
-            self.speech_recognition_task(),
-            self.table_filling_task(webpage_url)
-        )
+        await self.speech_recognition_task()
     
     async def speech_recognition_task(self):
         """语音识别任务"""
+        print("\n开始语音识别，说『结束』停止录音...")
         while True:
             audio_stream = await self.get_audio_stream()
             text = await self.recognizer.recognize(audio_stream)
@@ -100,54 +91,12 @@ class GradeFillingSystem:
                 # 处理最终结果
                 result_dict = await self.recognizer.process_final_results()
                 if result_dict:
-                    # 将结果添加到队列中
-                    for student_id, grade in result_dict.items():
-                        entry = self.processor.create_entry(student_id, grade)
-                        if entry:
-                            await self.data_queue.put(entry)
+                    print("\n是否更新Excel文件？(y/n): ")
+                    if input().lower().startswith('y'):
+                        self.excel_processor.process_grades()
                 break
             elif text == "STOP":
                 break
-            else:
-                entries = self.processor.process_text(text)
-                for entry in entries:
-                    await self.data_queue.put(entry)
-    
-    async def table_filling_task(self, webpage_url: str):
-        """表格填充任务"""
-        self.table_filler.driver.get(webpage_url)
-        table_structure = await self.web_analyzer.analyze_table(
-            self.table_filler.driver
-        )
-        
-        while True:
-            entry = await self.data_queue.get()
-            if entry is None:
-                continue
-                
-            # 查找匹配的学号并填充成绩
-            found = False
-            for row in table_structure['rows']:
-                # 获取完整学号的后四位进行匹配
-                full_student_id = row['student_id']
-                last_four_digits = full_student_id[-4:]
-                
-                if entry.student_id == last_four_digits:
-                    try:
-                        # 确保所有值都转换为字符串
-                        row_index = str(row['row_element'].get_attribute('rowIndex'))
-                        grade_col = str(table_structure['grade_col'] + 1)
-                        cell_selector = f"tr:nth-child({row_index}) td:nth-child({grade_col})"
-                        await self.table_filler.fill_grade(cell_selector, entry.grade)
-                        print(f"已填写: 完整学号 {full_student_id} (后四位: {last_four_digits}) 的成绩 {entry.grade}")
-                        found = True
-                        break
-                    except Exception as e:
-                        print(f"填写成绩时出错: {e}")
-                        continue
-            
-            if not found:
-                print(f"警告: 未找到匹配的学号 {entry.student_id}")
 
     async def get_audio_stream(self):
         """实时录音实现，增加错误处理和重试机制"""
@@ -214,7 +163,7 @@ class GradeFillingSystem:
 
 async def main():
     system = GradeFillingSystem()
-    await system.start("http://jwgl.ujn.edu.cn/jwglxt/cjlrgl/jscjlr_cxJscjlrIndex.html?doType=details&gnmkdm=N302505&layout=default&su=000011703590")
+    await system.start()
 
 if __name__ == "__main__":
     asyncio.run(main()) 
