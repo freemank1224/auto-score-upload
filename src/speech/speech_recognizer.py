@@ -69,7 +69,15 @@ class SenseVoiceRecognizer(SpeechRecognizer):
             result_dict = {}
             invalid_lines = []  # 记录无效的行
             
+            # 定义作废关键词
+            cancel_words = ["不对", "删除", "错", "作废", "取消", "重说"]
+            
             for idx, text in enumerate(self.recognition_results, 1):
+                # 首先检查是否包含作废关键词
+                if any(word in text for word in cancel_words):
+                    invalid_lines.append((idx, text, "用户表示需要作废此条记录"))
+                    continue
+                
                 # 使用正则表达式提取学号和分数
                 import re
                 # 匹配四位数字（学号）和分数
@@ -111,6 +119,8 @@ class SenseVoiceRecognizer(SpeechRecognizer):
                 for idx, text, reason in invalid_lines:
                     print(f"第 {idx} 行: {text}")
                     print(f"原因: {reason}")
+                    if any(word in text for word in cancel_words):
+                        print("(用户主动作废)")
             print("-" * 50)
             
             if result_dict:
