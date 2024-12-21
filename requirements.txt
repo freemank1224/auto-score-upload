@@ -48,7 +48,6 @@ sounddevice
 requests
 
 # 添加以下依赖
-langchain
 ollama
 
 # 添加 Excel 处理依赖
