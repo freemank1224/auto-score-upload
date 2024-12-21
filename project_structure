@@ -1,0 +1,15 @@
+speech-to-web/
+├── src/
+│   ├── speech/
+│   │   ├── __init__.py
+│   │   ├── speech_recognizer.py
+│   │   └── speech_processor.py
+│   ├── web/
+│   │   ├── __init__.py
+│   │   ├── page_analyzer.py
+│   │   └── table_filler.py
+│   ├── utils/
+│   │   ├── __init__.py
+│   │   └── data_queue.py
+│   └── main.py
+└── requirements.txt 

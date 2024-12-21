@@ -1,0 +1,49 @@
+# Speech Recognition - SenseVoice dependencies
+funasr >= 1.1.3
+funasr-onnx
+modelscope
+torchaudio
+soundfile
+pyyaml
+onnxconverter-common
+onnxruntime
+
+# Azure Speech Service (alternative backend)
+azure-cognitiveservices-speech
+
+# Web Automation
+selenium>=4.0.0
+
+# Computer Vision & OmniParser dependencies
+torch <= 2.3
+torchvision
+supervision == 0.18.0
+transformers
+ultralytics == 8.1.24
+opencv-python
+opencv-python-headless
+einops == 0.8.0
+pillow
+easyocr
+paddlepaddle
+paddleocr
+
+# Audio Processing
+numpy <= 1.26.4
+scipy
+fastapi >= 0.111.1
+
+# Utilities
+asyncio
+python-multipart
+tqdm
+openai == 1.3.5
+azure-identity
+gradio
+dill
+accelerate
+timm
+
+sounddevice
+requests
+
