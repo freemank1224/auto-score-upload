@@ -7,9 +7,10 @@ import numpy as np
 
 class GradeFillingSystem:
     def __init__(self):
-        self.recognizer = SenseVoiceRecognizer()
-        self.processor = SpeechProcessor()
-        self.excel_processor = ExcelProcessor()
+        # 初始化将要使用的组件，在初始化阶段将其实例化
+        self.recognizer = SenseVoiceRecognizer()    # 语音识别器
+        self.processor = SpeechProcessor()          # 语音处理器
+        self.excel_processor = ExcelProcessor()     # Excel处理器
         self.audio_device = self._select_audio_device()  # 选择录音设备
         
     def _select_audio_device(self):
@@ -36,13 +37,13 @@ class GradeFillingSystem:
                 device_idx = input_devices[int(choice)]
                 
                 # 测试选择的设备
-                print(f"正在测试设备...")
+                print(f"请说话以测试设备...")
                 
                 # 设置默认设备
                 sd.default.device = device_idx
                 
                 # 进行短时间测试录音
-                duration = 1  # 1秒测试
+                duration = 2  # 1秒测试
                 sample_rate = 16000
                 test_data = sd.rec(
                     int(duration * sample_rate),
